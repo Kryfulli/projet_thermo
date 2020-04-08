@@ -183,7 +183,7 @@ def graph_hs(M0=2,Tt4=1600):
     x = l[0]
     y = [cp*i/1000 for i in l[1]]
     fig, ax = plt.subplots()
-    ax.set_ylabel('Enthalpie (J)')
+    ax.set_ylabel('Enthalpie (kJ)')
     ax.set_xlabel('Entropie (J/K)')
     ax.grid(True)
     ax.plot(x,y)
