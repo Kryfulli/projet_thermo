@@ -47,7 +47,7 @@ Tt=[]
 def Tt0 (M0) : 
     return(T0*(1+(gamma-1)/2*M0*M0))
 
-def P0 (z=3000) :
+def P0 (z=10000) :
     return(Patm*np.exp(-7*g*z/(2*cp*T0)))
 
 def Pt0 (M0) :
@@ -55,7 +55,7 @@ def Pt0 (M0) :
 
 def Pt1 (M0) :
     if M0<1 :
-        Pt1=Pt0()*0.95
+        Pt1=Pt0(M0)*0.95
     else :
         Pt1=Pt0(M0)*(0.95-0.075*((M0-1)**1.35))
     return (Pt1)
@@ -106,7 +106,7 @@ def Tt3(M0,PIc) :
     return (Tt2(M0)*(PIc**((gamma-1)/gamma)))
 
 def a0(M0) :
-    return(M0*((gamma*r*T0)**0.5))
+    return((gamma*r*T0)**0.5)
 
 def Fsp (M0,PIc) :
     res = Tt3(M0,PIc)/Tt2(M0)
@@ -117,8 +117,10 @@ def Fsp (M0,PIc) :
     res = res -1
     res = res*Tt4/Tt3(M0,PIc)
     res = res*2/(gamma-1)
-    res =res**0.5
-    res =res - M0
+    if res<0 :
+        return (0)
+    res = res**(0.5)
+    res = res - M0
     res = res *a0(M0)
     return(res)
 
@@ -138,4 +140,111 @@ def rendement_p(M0,PIc):
 def rendement_th(M0,PIc) :
     return (1-(1/(Tt3(M0,PIc)/Tt2(M0)*Tt0(M0)/T0)))
 
-    
+def rendement_global(M0,PIc) :
+    return (rendement_p(M0,PIc)*rendement_th(M0,PIc))
+
+
+def diagramme_Fsp_f_Mo () :
+    nb_points=200
+    M0=np.linspace(0,6,nb_points)
+    Fsp_PIc_1=[Fsp(float(k)/float(nb_points-1)*6,1) for k in range (nb_points)]
+    Fsp_PIc_3=[Fsp(float(k)/float(nb_points-1)*6,3) for k in range (nb_points)]
+    Fsp_PIc_10=[Fsp(float(k)/float(nb_points-1)*6,10) for k in range (nb_points)]
+    Fsp_PIc_20=[Fsp(float(k)/float(nb_points-1)*6,20) for k in range (nb_points)]
+    plt.plot(M0,Fsp_PIc_1)
+    plt.plot(M0,Fsp_PIc_3)
+    plt.plot(M0,Fsp_PIc_10)
+    plt.plot(M0,Fsp_PIc_20)
+    max_fsp=1200
+    plt.legend(["PIc=1", "PIc=3","PIc=10","PIc=20"])
+    plt.axis([0, 6, 0, max_fsp])
+    plt.xlabel('Nombre de Mach en amont')
+    plt.ylabel('Poussee specifique N.kg-1.s')
+    plt.grid()
+    plt.show()
+
+
+def diagramme_Fsp_f_PIc () :
+    nb_points=200
+    PIc=np.linspace(0,50,nb_points)
+    Fsp_M0_05=[Fsp(0.5,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    Fsp_M0_1=[Fsp(1,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    Fsp_M0_2=[Fsp(2,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    Fsp_M0_3=[Fsp(3,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    plt.plot(PIc,Fsp_M0_05)
+    plt.plot(PIc,Fsp_M0_1)
+    plt.plot(PIc,Fsp_M0_2)
+    plt.plot(PIc,Fsp_M0_3)
+    max_fsp=1200
+    plt.legend(["M0=0.5", "M0=1","M0=2","M0=3"])
+    plt.axis([0, 50, 0, max_fsp])
+    plt.xlabel('Taux de compression')
+    plt.ylabel('Poussee specifique N.kg-1.s')
+    plt.grid()
+    plt.show()
+
+
+def diagramme_f_f_Mo () :
+    nb_points=200
+    M0=np.linspace(0,6,nb_points)
+    f_PIc_1=[f(float(k)/float(nb_points-1)*6,1) for k in range (nb_points)]
+    f_PIc_3=[f(float(k)/float(nb_points-1)*6,3) for k in range (nb_points)]
+    f_PIc_10=[f(float(k)/float(nb_points-1)*6,10) for k in range (nb_points)]
+    f_PIc_20=[f(float(k)/float(nb_points-1)*6,20) for k in range (nb_points)]
+    plt.plot(M0,f_PIc_1)
+    plt.plot(M0,f_PIc_3)
+    plt.plot(M0,f_PIc_10)
+    plt.plot(M0,f_PIc_20)
+    max_f=0.035
+    plt.legend(["PIc=1", "PIc=3","PIc=10","PIc=20"])
+    plt.axis([0, 6, 0, max_f])
+    plt.xlabel('Nombre de Mach en amont')
+    plt.ylabel('Rapport de melange')
+    plt.grid()
+    plt.show()
+
+def diagramme_f_f_PIc () :
+    nb_points=200
+    PIc=np.linspace(0,50,nb_points)
+    f_M0_05=[f(0.5,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    f_M0_1=[f(1,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    f_M0_2=[f(2,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    f_M0_3=[f(3,float(k)/float(nb_points-1)*50) for k in range (nb_points)]
+    plt.plot(PIc,f_M0_05)
+    plt.plot(PIc,f_M0_1)
+    plt.plot(PIc,f_M0_2)
+    plt.plot(PIc,f_M0_3)
+    max_f=0.035
+    plt.legend(["M0=0.5", "M0=1","M0=2","M0=3"])
+    plt.axis([0, 50, 0, max_f])
+    plt.xlabel('Taux de compression')
+    plt.ylabel('Rapport de melange')
+    plt.grid()
+    plt.show()
+
+
+def diagramme_rendement_f_Mo () :
+    nb_points=200
+    M0=np.linspace(0,6,nb_points)
+    rendement_p_PIc_1=[rendement_p(float(k)/float(nb_points-1)*6,1) for k in range (nb_points)]
+    rendement_p_PIc_20=[rendement_p(float(k)/float(nb_points-1)*6,20) for k in range (nb_points)]
+    rendement_th_PIc_1=[rendement_th(float(k)/float(nb_points-1)*6,1) for k in range (nb_points)]
+    rendement_th_PIc_20=[rendement_th(float(k)/float(nb_points-1)*6,20) for k in range (nb_points)]
+    rendement_global_PIc_1=[rendement_global(float(k)/float(nb_points-1)*6,1) for k in range (nb_points)]
+    rendement_global_PIc_20=[rendement_global(float(k)/float(nb_points-1)*6,20) for k in range (nb_points)]
+    plt.plot(M0,rendement_p_PIc_1)
+    plt.plot(M0,rendement_p_PIc_20)
+    plt.plot(M0,rendement_th_PIc_1)
+    plt.plot(M0,rendement_th_PIc_20)
+    plt.plot(M0,rendement_global_PIc_1)
+    plt.plot(M0,rendement_global_PIc_20)
+    max_rendement=1
+    plt.legend(["rendement_p_PIc=1", "rendement_p_PIc=20","rendement_th_PIc=1","rendement_th_PIc=20","rendement_global_PIc=1","rendement_global_PIc=20"])
+    plt.axis([0, 6, 0, max_rendement])
+    plt.xlabel('Nombre de Mach en amont')
+    plt.ylabel('rendement')
+    plt.grid()
+    plt.show()
+
+
+
