@@ -248,4 +248,6 @@ def diagramme_rendement_f_Mo () :
     plt.show()
 
 
-
+def get_data(x0,xm,n):
+    y = []
+    return y
