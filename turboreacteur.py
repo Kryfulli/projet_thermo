@@ -1,7 +1,6 @@
-if (__name__ == '__main__'):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    #import csv
+import numpy as np
+import matplotlib.pyplot as plt
+#import csv
 
 #variables
 Tt4=1600
@@ -11,7 +10,15 @@ cp=1004 #cp massique
 PCI=42.8*(10**6)
 Patm=1
 g=9.81
-r=287
+Pi=1
+T_ref = 298.15 #Température de référence
+r=287.058
+Dn=180
+R=8.314
+P_ref=100000
+M0  =1
+z0  = 1000
+mode = 'Ts'
 
 #conditions nominales
 Dn=180
@@ -136,7 +143,11 @@ def v9 (M0,PIc) :
     return((Fsp(M0,PIc)/a0(M0)+M0)*a0(M0))
 
 def rendement_p(M0,PIc):
-    return((2*M0)/(v9(M0,PIc)/a0(M0)+M0))
+    r=((2*M0)/(v9(M0,PIc)/a0(M0)+M0))
+    if r<1.0:
+        return r
+    else:
+        return 1.0
 
 def rendement_th(M0,PIc) :
     return (1-(1/(Tt3(M0,PIc)/Tt2(M0)*Tt0(M0)/T0)))
@@ -246,8 +257,96 @@ def diagramme_rendement_f_Mo () :
     plt.ylabel('rendement')
     plt.grid()
     plt.show()
+    
+def P_altitude(z):
+    return 100*1013.25*(1-(0.0065*z/288.15))**5.255
+
+def S_k(k,X_k,P,T):
+    S=0
+    if (k=='O2'):
+        a=[3.28253784E+00,1.48308754E-03,-7.57966669E-07,2.09470555E-10,-2.16717794E-14,-1.08845772E+03,5.45323129E+00,3.78245636E+00,-2.99673416E-03,9.84730201E-06,-9.68129509E-09,3.24372837E-12,-1.06394356E+03,3.65767573E+00]     
+        if (T>1000):
+            S+= R*(a[0]*np.log(T) + a[1]*T + (a[2]*T**2)/2 + (a[3]*T**3)/3 + (a[4]*T**4)/4) + a[6]
+        else:
+            S+= R*(a[0+7]*np.log(T) + a[1+7]*T + (a[2+7]*T**2)/2 + (a[3+7]*T**3)/3 + (a[4+7]*T**4)/4) + a[6+7]
+        return S - R*np.log(P/P_ref) - R*np.log(X_k)
+    elif (k=='N2'):
+        a=[0.02926640E+02,0.14879768E-02,-0.05684760E-05,0.10097038E-09,-0.06753351E-13,-0.09227977E+04,0.05980528E+02,0.03298677E+02,0.14082404E-02,-0.03963222E-04,0.05641515E-07,-0.02444854E-10,-0.10208999E+04,0.03950372E+02]
+        if (T>1000):
+            S+= R*(a[0]*np.log(T) + a[1]*T + (a[2]*T**2)/2 + (a[3]*T**3)/3 + (a[4]*T**4)/4) + a[6]
+        else:
+            S+= R*(a[0+7]*np.log(T) + a[1+7]*T + (a[2+7]*T**2)/2 + (a[3+7]*T**3)/3 + (a[4+7]*T**4)/4) + a[6+7]
+        return S - R*np.log(P/P_ref) - R*np.log(X_k)
+    elif (k=='air'):
+        return 0.21*S_k('O2',0.21*X_k,P,T) + 0.79*S_k('N2',0.79*X_k,P,T)
 
 
-def get_data(x0,xm,n):
-    y = []
-    return y
+def S(P,T):
+        return S_k('air',1,P,T)
+    
+def graph_ts(display=False):
+
+    T = T0
+    P = P_altitude(z0)
+
+    #A l'entrée, on a T0 et une entropie correspondante à la pression à l'altitude souhaitée
+    p_0 = [T,S(P,T)]
+
+    #Le fluide est arrêté de manière isentropique au point 1 avant d'être compressé
+    P   = P * np.exp(R/cp*np.log((0.2*(M0**2))))
+    T   = T*(1+(0.2*(M0**2)))
+    p_1 = [T,p_0[1]]
+
+    #Compresseur isentropique du turboréacteur au point 2
+    P   = P*Pi
+    T = T*Pi**(r/cp)
+    p_3 = [T,p_1[1]]
+    
+    #Combustion isobare du carburant au point 3
+    T   = Tt4
+    p_4 = [T,S(P,T)]
+
+    x=[p_0[1],p_1[1],p_3[1]]
+    y=[p_0[0],p_1[0],p_3[0]]
+    [x.append(i) for i in np.linspace(p_3[1],p_4[1],100)]
+    B = np.log(p_4[0]/p_3[0])/(p_4[1]-p_3[1])
+    A = p_4[0]/(np.exp(B*p_4[1]))
+    [y.append(A*np.exp(B*s)) for s in np.linspace(p_3[1],p_4[1],100)]
+
+    #Détente isentropique au point 4 : même travail que celui du compresseur au point 2
+    # on considère que cp = constant --> même longueur de segments
+    T = T - (p_3[0]-p_1[0])
+    P = P*(T/(Tt4))**(cp/r)
+    p_5 = [T,p_4[1]]
+    x.append(p_5[1])
+    y.append(p_5[0])
+    
+    #Tuyère au point 9 adapté à la pression atmo
+    P = P_altitude(z0)
+    T = T0*(P/P_ref)**(R/cp)
+    p_9 = [T,p_4[1]]
+    x.append(p_9[1])
+    y.append(p_9[0])
+    if (display):
+        fig, ax = plt.subplots()
+        ax.set_ylabel('Température (K)')
+        ax.set_xlabel('Entropie (J/K)')
+        ax.grid(True)
+        ax.plot(x,y)
+        plt.show()
+    return [x,y]
+
+def graph_n(display=False):
+    x=np.linspace(0.05,6,200)
+    y1=[rendement_th(i,Pi) for i in x]
+    y2=[rendement_p(i,Pi) for i in x]
+    y3=[rendement_global(i,Pi) for i in x]
+    
+    return (x,y1,y2,y3)
+
+
+def get_data():
+    if (mode=='Ts'):
+        return graph_ts()
+    elif (mode=='n'):
+        return graph_n()

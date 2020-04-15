@@ -2,11 +2,6 @@
 import numpy
 import matplotlib.pyplot as plt
 
-Tt = [] #Températures totales 
-Ts = [] #Températures statiques
-Pt = [] #Pressions totales
-Ps = [] #Pressions statiques
-
 T_ref = 298.15 #Température de référence
 T0 = 217 #Température statique en entrée d'air
 gamma=1.4
@@ -19,6 +14,7 @@ P_ref=100000
 Tt4 = 1600
 M0  =1
 z0  = 1000
+mode = 'Ts'
 
 def Pt1_Pt0(M): #Rapport Pt1/Pt0, pertes de charges à l'entrée d'air
     if (M<1):
@@ -33,7 +29,11 @@ def Tt(M0,Tt4=1600):
 
 def np(M0,Tt4=1600): #Rendement propulsif
     V9_a0=(2/(gamma-1)*Tt4/T0/((1+((gamma-1)/2)*M0**2))*((1+((gamma-1)/2)*M0**2)-1))**0.5
-    return (2*M0)/(V9_a0+M0)
+    r =  (2*M0)/(V9_a0+M0)
+    if r<1.0:
+        return r
+    else:
+        return 1.0
 
 def nth(M0): #Rendement thermique
     return 1-(1/(1+((gamma-1)/2)*M0**2))
@@ -89,32 +89,13 @@ def graph_f():
     plt.legend("T=1600K","T=1900K","T=2200K")
     plt.show()
 
-def graph_n():
-    fig, ax = plt.subplots()
-    x=numpy.linspace(0.1,7,200)
-    y1_1=[np(i,1600) for i in x]
-    y1_2=[nth(i) for i in x]
-    y1_3=[ng(i,1600) for i in x]
-    y2_1=[np(i,1900) for i in x]
-    y2_2=[nth(i) for i in x]
-    y2_3=[ng(i,1900) for i in x]
-    y3_1=[np(i,2200) for i in x]
-    y3_2=[nth(i) for i in x]
-    y3_3=[ng(i,2200) for i in x]
-    ax.plot(x,y1_1,label='Rendement propulsif, T=1600K')
-    ax.plot(x,y1_2,label='Rendement thermique, T=1600K')
-    ax.plot(x,y1_3,label='Rendement global, T=1600K')
-    ax.plot(x,y2_1,label='Rendement propulsif, T=1900K')
-    ax.plot(x,y2_2,label='Rendement thermique, T=1900K')
-    ax.plot(x,y2_3,label='Rendement global, T=1900K')
-    ax.plot(x,y3_1,label='Rendement propulsif, T=2200K')
-    ax.plot(x,y3_2,label='Rendement thermique, T=2200K')
-    ax.plot(x,y3_3,label='Rendement global, T=2200K')
-    ax.legend(loc='upper left', shadow=True, fontsize='x-large')
-    ax.set_ylabel('Rendements')
-    ax.set_xlabel('Nombre de Mach')
-    ax.grid(True)
-    plt.show()
+def graph_n(display=False):
+    x=numpy.linspace(0.05,6,200)
+    y1=[np(i,Tt4) for i in x]
+    y2=[nth(i) for i in x]
+    y3=[ng(i,Tt4) for i in x]
+    
+    return (x,y1,y2,y3)
 
 
 
@@ -142,7 +123,7 @@ def S_k(k,X_k,P,T):
 
 
 def S(P,T):
-        return cp*numpy.log(T/T0) - R*numpy.log(P/P_altitude(20000))
+        return S_k('air',1,P,T)
     
 def graph_ts(display=False):
 
@@ -195,7 +176,10 @@ def graph_hs(M0=2,Tt4=1600):
     return [x,y]
 
 def get_data():
-    return graph_ts()
+    if (mode=='Ts'):
+        return graph_ts()
+    elif (mode=='n'):
+        return graph_n()
 
 #hs=cp*(T-T_ref)
 #Ds = cp ln(T/T_ref) - R ln(P/P_ref)
