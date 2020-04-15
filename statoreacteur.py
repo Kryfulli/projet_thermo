@@ -16,6 +16,9 @@ r=287.058
 Dn=180
 R=8.314
 P_ref=100000
+Tt4 = 1600
+M0  =1
+z0  = 1000
 
 def Pt1_Pt0(M): #Rapport Pt1/Pt0, pertes de charges à l'entrée d'air
     if (M<1):
@@ -141,10 +144,10 @@ def S_k(k,X_k,P,T):
 def S(P,T):
         return cp*numpy.log(T/T0) - R*numpy.log(P/P_altitude(20000))
     
-def graph_ts(M0=2,Tt4=1600,display=True):
+def graph_ts(display=False):
 
     T = T0
-    P = P_altitude(20000)
+    P = P_altitude(z0)
 
     #A l'entrée, on a T0 et une entropie correspondante à la pression à l'altitude souhaitée
     p_0 = [T,S(P,T)]
@@ -160,11 +163,12 @@ def graph_ts(M0=2,Tt4=1600,display=True):
 
     x=[p_0[1],p_3[1]]
     y=[p_0[0],p_3[0]]
-    [x.append(i) for i in numpy.linspace(0,p_4[1],100)]
-    [y.append(T0+T0*numpy.exp((s + R*numpy.log(P/P_ref))/cp)) for s in numpy.linspace(0,p_4[1],100)]
-
+    [x.append(i) for i in numpy.linspace(p_3[1],p_4[1],100)]
+    B = numpy.log(p_4[0]/p_3[0])/(p_4[1]-p_3[1])
+    A = p_4[0]/(numpy.exp(B*p_4[1]))
+    [y.append(A*numpy.exp(B*s)) for s in numpy.linspace(p_3[1],p_4[1],100)]
     #Tuyère au point 9 adapté à la pression atmo
-    P = P_altitude(20000)
+    P = P_altitude(z0)
     T = T0*(P/P_ref)**(R/cp)
     p_9 = [T,p_4[1]]
     x.append(p_9[1])
@@ -190,6 +194,8 @@ def graph_hs(M0=2,Tt4=1600):
     plt.show()
     return [x,y]
 
+def get_data():
+    return graph_ts()
 
 #hs=cp*(T-T_ref)
 #Ds = cp ln(T/T_ref) - R ln(P/P_ref)
