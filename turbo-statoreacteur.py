@@ -4,25 +4,25 @@ import csv
 
 #variables
 #Tt4=1600
-T0=217
+T0=217.0
 gamma=1.4
 cp=1004 #cp massique
 PCI=42.8*(10**6)
-Patm=1
+Patm=1.0
 g=9.81
-r=287
+r=287.0
 R=8.314
-Tb=2000
-T_H2=20
+Tb=2000.0
+T_H2=20.0
 
 #flux echangeur de chaleur
-flux_1_5=50000 #J
+flux_1_5=50000.0 #J
 
 
 #conditions nominales
-Dn=180
-Tn=288
-Pn=1
+Dn=180.0
+Tn=288.0
+Pn=1.0
 PIn=6.67
 
 #definition des listes
@@ -55,13 +55,13 @@ def cp_air(T) :
         a_O2=[3.28253784E+00,1.48308754E-03,-7.57966669E-07,2.09470555E-10,-2.16717794E-14,-1.08845772E+03,5.45323129E+00]
         Cp_N2 = R*(a_N2[0] + a_N2[1]*T + a_N2[2]*(T**2) + a_N2[3]*(T**3) + a_N2[4]*(T**4))
         Cp_O2 = R*(a_O2[0] + a_O2[1]*T + a_O2[2]*(T**2) + a_O2[3]*(T**3) + a_O2[4]*(T**4))
-        Cp_air=0.78*Cp_N2+0.21*Cp_O2
+        Cp_air=0.78*Cp_N2*14+0.21*Cp_O2*32
     else :
         a_N2=[0.03298677E+02,0.14082404E-02,-0.03963222E-04,0.05641515E-07,-0.02444854E-10,-0.10208999E+04,0.03950372E+02]
         a_O2=[3.78245636E+00,-2.99673416E-03,9.84730201E-06,-9.68129509E-09,3.24372837E-12,-1.06394356E+03,3.65767573E+00]
         Cp_N2 = R*(a_N2[0] + a_N2[1]*T + a_N2[2]*(T**2) + a_N2[3]*(T**3) + a_N2[4]*(T**4))
         Cp_O2 = R*(a_O2[0] + a_O2[1]*T + a_O2[2]*(T**2) + a_O2[3]*(T**3) + a_O2[4]*(T**4))
-        Cp_air=0.78*Cp_N2+0.21*Cp_O2
+        Cp_air=0.78*Cp_N2*14+0.21*Cp_O2*32
     return(Cp_air)
 
 def cp_H2(T) :
@@ -81,7 +81,7 @@ def P0 (z) :
     return(Patm*np.exp(-7*g*z/(2*cp*T0)))
 
 def Pt0 (M0,z) :
-    return(P0()*((1+(gamma-1)/2*M0*M0)**(gamma/(gamma-1))))
+    return(P0(z)*((1+(gamma-1)/2*M0*M0)**(gamma/(gamma-1))))
 
 def Pt1 (M0,z) :
     if M0<1 :
@@ -97,12 +97,14 @@ def T1(M0,z):
     return (Tt1(M0,z)/(1+(gamma-1)/2*(M0**2)))
 
 def T2 (M0,z) :
-    flux_sortie=cp(T1(M0,z))*T1+flux_1_5
-    a=0
-    b=3500
+    flux_sortie=cp_air(T1(M0,z))*float(T1(M0,z))+float(flux_1_5)
+    
+    a=200.0
+    b=3500.0
     while abs(b-a)>0.01 :
         m=(a+b)/2
-        if cp_air(m)*m>flux_sortie :
+        
+        if (cp_air(m)*m)>flux_sortie :
             b=m
         else :
             a=m
@@ -135,7 +137,7 @@ def CFR_to_RPR (CFR_0) :
 def theta2(M0,z):
     return(Tt2(M0,z)/Tn)
 
-def delta2 (M0) :
+def delta2 (M0,z) :
     return (Pt2(M0,z)/Patm)
 
 def CRS_0 (M0,z) :
@@ -145,7 +147,7 @@ def RPR_0 (M0,z) :
     RPR_0=CFR_to_RPR(CRS_to_CFR(CRS_0(M0,z)))
     return(RPR_0)
 
-def CFR_0(M0):
+def CFR_0(M0,z):
     CFR_0=CRS_to_CFR (CRS_0(M0,z))
     return (CFR_0)
 
@@ -164,8 +166,8 @@ def T3(M0,z):
 def D_air (M0,z) :
     return (Dn*CFR_0(M0,z)*delta2 (M0,z)/(theta2(M0,z)**(0.5)))
 
-def flux_massique_3_4(M0,D_H2,z): #W/kg
-    return (((D_H2*cp_H2(Tb)+D_air(M0,z)*cp_air(Tb))*Tb)-(D_H2*cp_H2(T_H2)*T_H2)-(D_air(M0,z)*cp_air(T3(M0,z))*T3(M0,z)))
+def flux_massique_3_4(M0,D_H2,z): 
+    return ((((D_H2*cp_H2(Tb)+D_air(M0,z)*cp_air(Tb))*Tb)-(D_H2*cp_H2(T_H2)*T_H2)-(D_air(M0,z)*cp_air(T3(M0,z))*T3(M0,z)))/(D_H2+D_air(M0,z)))
 
 def Pt4(M0,z) :
     return (Pt3(M0,z)*((Tb/T3(M0,z))**(gamma/(gamma-1))))
@@ -175,10 +177,11 @@ def Tt4(M0,z):
 
 
 def T5(M0,D_H2,z) :
-    flux_sortie=(cp(Tb)*Tb)+flux_1_5-(flux_massique_3_4(M0,D_H2,z)*(D_H2+D_air(M0,z)))
-    a=0
-    b=3500
+    flux_sortie=((cp_air(Tb)*D_air(M0,z)+cp_H2(Tb)*D_H2)*Tb/(D_H2+D_air(M0,z)))+flux_1_5-(flux_massique_3_4(M0,D_H2,z))
+    a=0.0
+    b=3500.0
     while abs(b-a)>0.01 :
+        
         m=(a+b)/2
         if cp_air(m)*m>flux_sortie :
             b=m
@@ -187,12 +190,17 @@ def T5(M0,D_H2,z) :
     return((a+b)/2)
 
 def Pt5(M0,D_H2,z) :
+    
+    
     return (Pt4(M0,z)*((T5(M0,D_H2,z)/Tb)**(gamma/(gamma-1))))
 
 def M9 (M0,D_H2,z) :
-    res=Pt5(M0,D_H2,zça ma)/P0
+    
+    res=Pt5(M0,D_H2,z)/P0(z)
     res=res**((gamma-1)/gamma)
+    
     res=2*(res-1)/(gamma-1)
+    
     res=res**0.5
     return(res)
 
@@ -202,7 +210,7 @@ def a0(M0) :
     return((gamma*r*T0)**0.5)
 
 def Fsp (M0,D_H2,z) :
-    res=M9(M0,D_H2,z)*(((Tt4(M0,z)/T0)/(Tt3(M0,z)/Tt2(M0,z))/(Tt0(M0,z)/T0))**0.5)
+    res=M9(M0,D_H2,z)*(((Tt4(M0,z)/T0)/(Tt3(M0,z)/Tt2(M0,z))/(Tt0(M0)/T0))**0.5)
     res=a0(M0)*(res-M0)
     return(res)
 
@@ -224,3 +232,6 @@ def rendement_th(M0,z) :
 
 def rendement_global(M0,D_H2,z) :
     return (rendement_p(M0,D_H2,z)*rendement_th(M0,z))
+
+
+
