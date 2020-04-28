@@ -161,7 +161,6 @@ def CFR_to_RPR (CFR_0) :
         return (RPR_0)
 
 def theta2(M0,z):
-    
     return(Tt2(M0,z)/Tn)
 
 def delta2 (M0,z) :
@@ -278,9 +277,9 @@ def masse_vol(z) :
     return (P0(z)*Masse_mol/(R*T0(z)))
 
 def f_D_H2_liste() :
-    res=[0.01,0.01]
+    res=[0.05,0.05]
     for i in range (int(T/dt)) :
-        res.append(float(i)*0.005+0.01)
+        res.append(float(i)*0.05+0.001)
     return (res)
 
 
@@ -296,8 +295,7 @@ def f_x_z_liste(D_H2_liste):
         M.append(V0/(gamma*R/Masse_mol*T0(z[i+1])))
         x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.cos(angle_alpha)*D_air(M[i+1],z[i+1])/m_engin)-x[i]+2*x[i+1])
         z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.sin(angle_alpha)*D_air(M[i+1],z[i+1])/m_engin)-z[i]+2*z[i+1])
-        if z[i+2]<0 :
-            z[i+2]=0
+        print(T0 (z[i+2]))
     return(x,z,M,t)
 
 
@@ -350,11 +348,11 @@ def optimization_D_H2_liste () :
 
     
 
-D_H2_liste=optimization_D_H2_liste ()
-x_liste=f_x_z_liste(D_H2_liste)[0]
-z_liste=f_x_z_liste(D_H2_liste)[1]
-M0_liste=f_x_z_liste(D_H2_liste)[2]
-t_liste=f_x_z_liste(D_H2_liste)[3]
-print(D_H2_liste)
-plt.plot(t_liste,z_liste)
-plt.show()
+##D_H2_liste=optimization_D_H2_liste ()
+##x_liste=f_x_z_liste(D_H2_liste)[0]
+##z_liste=f_x_z_liste(D_H2_liste)[1]
+##M0_liste=f_x_z_liste(D_H2_liste)[2]
+##t_liste=f_x_z_liste(D_H2_liste)[3]
+##print(D_H2_liste)
+##plt.plot(t_liste,z_liste)
+##plt.show()
