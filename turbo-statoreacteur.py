@@ -272,14 +272,15 @@ Cz=2.0*np.pi*angle_alpha
 Cx=Cz/f
 Masse_mol=28.976E-03
 Rmax=7000.0
+m_engin=200*1000
 
 def masse_vol(z) :
     return (P0(z)*Masse_mol/(R*T0(z)))
 
 def f_D_H2_liste() :
-    res=[0.0001,0.0001]
+    res=[0.01,0.01]
     for i in range (int(T/dt)) :
-        res.append(float(i)*0.00005+0.0001)
+        res.append(float(i)*0.005+0.01)
     return (res)
 
 
@@ -293,14 +294,14 @@ def f_x_z_liste(D_H2_liste):
         t.append(float(i+1)*dt)
         V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+1]-z[i])/dt)**2.0))**0.5
         M.append(V0/(gamma*R/Masse_mol*T0(z[i+1])))
-        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.cos(angle_alpha)*dt)-x[i]+2*x[i+1])
-        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.sin(angle_alpha)*dt)-z[i]+2*z[i+1])
-        if z[len(z)-1]>100000.0 :
-            z[len(z)-1]=100000.0        
+        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.cos(angle_alpha)*D_air(M[i+1],z[i+1])/m_engin)-x[i]+2*x[i+1])
+        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.sin(angle_alpha)*D_air(M[i+1],z[i+1])/m_engin)-z[i]+2*z[i+1])
+        if z[i+2]<0 :
+            z[i+2]=0
     return(x,z,M,t)
 
 
-delta_variation_D_H2=0.0001
+delta_variation_D_H2=0.01
 
 def variation_de_liste_D_H2(D_H2_liste,nombre_de_variations):
     res=[]
