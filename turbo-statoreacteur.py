@@ -190,7 +190,7 @@ def T3(M0,z):
     return (Tt3(M0,z))
 
 def D_air (M0,z) :
-    return (M0/5.0*Dn*CFR_0(M0,z)*delta2 (M0,z)/(theta2(M0,z)**(0.5)))
+    return (Dn*CFR_0(M0,z)/100.0*delta2 (M0,z)/(theta2(M0,z)**(0.5)))
 
 def flux_massique_3_4(M0,D_H2,z): 
     return ((((D_H2*cp_H2(Tb)+D_air(M0,z)*cp_air(Tb))*Tb)-(D_H2*cp_H2(T_H2)*T_H2)-(D_air(M0,z)*cp_air(T3(M0,z))*T3(M0,z)))/(D_H2+D_air(M0,z)))
@@ -215,9 +215,7 @@ def T5(M0,D_H2,z) :
             a=m
     return((a+b)/2.0)
 
-def Pt5(M0,D_H2,z) :
-    
-    
+def Pt5(M0,D_H2,z) :    
     return (Pt4(M0,z)*((T5(M0,D_H2,z)/Tb)**(gamma/(gamma-1.0))))
 
 def M9 (M0,D_H2,z) :
@@ -241,11 +239,12 @@ def Fsp (M0,D_H2,z) :
     res=a0(z)*(res-M0)
     return(res)
 
-def f (M0,z) :
-    res=Tt4(M0,z)/T0(z)-Tt3(M0,z)/Tt2(M0,z)*Tt0(M0,z)/T0(z)
-    res=res*T0(z)
-    res=res*gamma*r/(gamma-1)
-    res=res/PCI
+def f_D(M0,D_H2,z) :
+##    res=Tt4(M0,z)/T0(z)-Tt3(M0,z)/Tt2(M0,z)*Tt0(M0,z)/T0(z)
+##    res=res*T0(z)
+##    res=res*gamma*r/(gamma-1)
+##    res=res/PCI
+    res=D_H2/D_air(M0,z)
     return(res)
     
 def v9 (M0,D_H2,z) :
@@ -262,7 +261,7 @@ def rendement_global(M0,D_H2,z) :
 
 
 
-dt=1
+dt=1.0
 T=600.0
 angle_gamma=5.0/360.0*2.0*np.pi
 angle_alpha=5.0/360.0*2.0*np.pi
@@ -277,25 +276,26 @@ def masse_vol(z) :
     return (P0(z)*Masse_mol/(R*T0(z)))
 
 def f_D_H2_liste() :
-    res=[0.5,0.5]
+    res=[10.0,10.0]
     for i in range (int(T/dt)) :
-        res.append(2.0)
+        res.append(10.0)
     return (res)
 
 
 def f_x_z_liste(D_H2_liste):
     x=[0.0,0.0]
-    z=[1.0,2.0]
+    z=[0.0,0.0]
     M=[0.0,0.0]
     t=[0.0,0.0]
-    D_H2=f_D_H2_liste()
+    D_H2=D_H2_liste
+    
     for i in  range (int(T/dt)):
         t.append(float(i+1)*dt)
         V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+1]-z[i])/dt)**2.0))**0.5
         M.append(V0/(gamma*R/Masse_mol*T0(z[i+1])))
-        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.cos(angle_alpha)*D_H2[i+1]/m_engin)-x[i]+2*x[i+1])
-        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.sin(angle_alpha)*D_H2[i+1]/m_engin)-z[i]+2*z[i+1])
-        print(z[i+1])
+        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.cos(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-x[i]+2*x[i+1])
+        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],D_H2[i+1],z[i+1])*np.sin(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-z[i]+2*z[i+1])
+        
         if z[i+2]>30000.0 :
             z[i+2]=30000.0
         elif z[i+2]<0.0 :
@@ -303,7 +303,7 @@ def f_x_z_liste(D_H2_liste):
     return(x,z,M,t)
 
 
-delta_variation_D_H2=0.01
+delta_variation_D_H2=1.0
 
 def variation_de_liste_D_H2(D_H2_liste,nombre_de_variations):
     res=[]
@@ -313,8 +313,8 @@ def variation_de_liste_D_H2(D_H2_liste,nombre_de_variations):
            res[k]=0.01
     return(res)
 
-nombre_de_variations_max=1
-nombre_de_changements_de_liste_max=1
+nombre_de_variations_max=50
+nombre_de_changements_de_liste_max=100
 
 
 def optimization_D_H2_liste () :
@@ -332,16 +332,19 @@ def optimization_D_H2_liste () :
                 if (sum(D_H2_liste1)<sum(D_H2_liste2)) :
                     D_H2_liste1=D_H2_liste2
                     nombre_de_changements_de_liste+=1
+                    nombre_de_variations=0
                 else :
                     nombre_de_variations+=1
             elif (abs(M0_f1-6.0)>abs(M0_f2-6.0)) and (abs(M0_f1-6.0)>0.1) :
                 D_H2_liste1=D_H2_liste2
                 nombre_de_changements_de_liste+=1
+                nombre_de_variations=0
             else :
                 nombre_de_variations+=1
         elif (abs(z_f1-27000.0)>abs(z_f2-27000.0)) and (abs(z_f1-27000.0)>100.0) :
             D_H2_liste1=D_H2_liste2
             nombre_de_changements_de_liste+=1
+            nombre_de_variations=0
         else :
             nombre_de_variations+=1
         print("nombre_de_variations :",nombre_de_variations)
@@ -352,11 +355,11 @@ def optimization_D_H2_liste () :
 
     
 
-D_H2_liste=optimization_D_H2_liste ()
-x_liste=f_x_z_liste(D_H2_liste)[0]
-z_liste=f_x_z_liste(D_H2_liste)[1]
-M0_liste=f_x_z_liste(D_H2_liste)[2]
-t_liste=f_x_z_liste(D_H2_liste)[3]
-print(D_H2_liste)
-plt.plot(t_liste,z_liste)
-plt.show()
+##D_H2_liste=optimization_D_H2_liste ()
+##x_liste=f_x_z_liste(D_H2_liste)[0]
+##z_liste=f_x_z_liste(D_H2_liste)[1]
+##M0_liste=f_x_z_liste(D_H2_liste)[2]
+##t_liste=f_x_z_liste(D_H2_liste)[3]
+##print(D_H2_liste)
+##plt.plot(t_liste,z_liste)
+##plt.show()
