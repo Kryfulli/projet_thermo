@@ -14,9 +14,15 @@ l,    = plt.plot([],[]) #Diagramme T,s
 ln1,  = plt.plot([],[], label='Rendement propulsif', linestyle='dashed')
 ln2,  = plt.plot([],[], label='Rendement thermique', linestyle='dashed') # Courbes de rendement
 ln3,  = plt.plot([],[], label='Rendement global')
-le   = plt.legend(loc='upper left')
-le.set_visible(False)
-     
+
+ls1,  = plt.plot([],[], label='Consommation Spécifique')
+ls2,  = plt.plot([],[], label='Poussée Spécifique')
+
+le1    = plt.legend((ls1,ls2),('Consommation Spécifique','Poussée Spécifique'),loc='upper left')
+le1    = plt.legend((ln1,ln2,ln3),('Rendement propulsif','Rendement thermique','Rendement global'),loc='upper left')
+
+le1.set_visible(False)
+
 ax.set_xlim(150,220)
 ax.set_ylim(100,2350)
 plt.xlabel('Entropie (J)')
@@ -60,10 +66,8 @@ cAx   = Cursor(ax,useblit=True,color='red')
 
 rMod  = RadioButtons(axMod, ('Modèle Idéal', 'Modèle Réaliste'), active=0)
 rMot  = RadioButtons(axMot, ('Turboréacteur', 'Statoréacteur', 'Superturboréacteur'), active=1)
-rGra  = RadioButtons(axGra, ('Diagramme T,s', 'Courbes de rendement'), active=0)
+rGra  = RadioButtons(axGra, ('Diagramme T,s', 'Courbes de rendement', 'Poussée Spécifique','Conso spécifique'), active=0)
 
-props = dict(boxstyle='round', facecolor='silver', alpha=0.5)
-#tCur  = ax.text(1.01,0.75,'Résultats :\n\nPoussée spécifique :\nConsommation spécifique :    \nRapport de mélange :\nRendements :',bbox=props)
 
 
 def update_mod(m):
@@ -78,9 +82,9 @@ def update_mod(m):
         l.set_ydata(y)
         ax.set_xlim(l.get_xdata()[0]-10,l.get_xdata()[-1]+10)
         ax.set_ylim(100,max(2350,l.get_ydata()[2]+100))
-        le.set_visible(False)
+        le1.set_visible(False)
         fig.canvas.draw_idle()
-    else:
+    elif (rGra.value_selected=='Courbes de rendement'):
         m.mode = 'n'
         x, y1, y2, y3 = m.get_data()
         ln1.set_xdata(x)
@@ -89,7 +93,21 @@ def update_mod(m):
         ln2.set_ydata(y2)
         ln3.set_xdata(x)
         ln3.set_ydata(y3)
-        le.set_visible(True)
+        le1.set_visible(True)
+        fig.canvas.draw_idle()
+    elif (rGra.value_selected=='Poussée Spécifique'):
+        m.mode = 'P_s'
+        x, y1 = m.get_data()
+        ls1.set_xdata(x)
+        ls1.set_ydata(y1)
+        le1.set_visible(False)
+        fig.canvas.draw_idle()
+    else:
+        m.mode = 'C_s'
+        x, y1 = m.get_data()
+        ls1.set_xdata(x)
+        ls1.set_ydata(y1)
+        le1.set_visible(False)
         fig.canvas.draw_idle()
         
 def update(val):
@@ -115,7 +133,7 @@ def switch_mode(val):
         ax.set_ylabel('Température statique (K)')
         update(1)
         
-    else:
+    elif (rGra.value_selected=='Courbes de rendement'):
         ln1.set_visible(True)
         ln2.set_visible(True)
         ln3.set_visible(True)
@@ -128,7 +146,27 @@ def switch_mode(val):
         ax.set_xlim(0,6)
         ax.set_ylim(0,1)
         update(1)
-
+    elif (rGra.value_selected=='Poussée Spécifique'):
+        ln1.set_visible(False)
+        ln2.set_visible(False)
+        ln3.set_visible(False)
+        l.set_visible(False)
+        ax.set_xlabel('Nombre de Mach')
+        ax.set_ylabel('Poussée spécifique (s)')
+        ax.set_xlim(0,6)
+        ax.set_ylim(0,800)
+        update(1)
+    else:
+        ln1.set_visible(False)
+        ln2.set_visible(False)
+        ln3.set_visible(False)
+        l.set_visible(False)
+        ax.set_xlabel('Nombre de Mach')
+        ax.set_ylabel('Consommation spécifique (kg.s-1)')
+        ax.set_xlim(0,6)
+        ax.set_ylim(0,.001)
+        update(1)
+        
 def switch_mot(val):
     if (rMot.value_selected=='Statoréacteur'):
         sPi.set_active(False)

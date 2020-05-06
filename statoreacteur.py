@@ -50,6 +50,8 @@ def f(M0,Tt4=1600): #rapport de mélange
     return (cp*T0*((Tt4/T0)-((Pt1_Pt0(M0))**(gamma/(gamma-1)))))/PCI
 
 def csp(M0,Tt4=1600): #consommation spécifique
+    if (Fsp(M0,Tt4)<=0):
+        return 0
     return f(M0,Tt4)/Fsp(M0,Tt4)
     
 def graph_Fsp():
@@ -75,7 +77,6 @@ def graph_csp():
     plt.plot(x,y1,label='T=1600K')
     plt.plot(x,y2)
     plt.plot(x,y3)
-    plt.legend("T=1600K","T=1900K","T=2200K")
     plt.show()
 
 def graph_f():
@@ -175,11 +176,27 @@ def graph_hs(M0=2,Tt4=1600):
     plt.show()
     return [x,y]
 
+def graph_s(nb):
+    x=numpy.linspace(0.1,6,100)
+    y1 = Fsp(x,Tt4)
+    numpy.insert(x,0,0)
+    numpy.insert(y1,0,0)
+    y2 = [csp(i,Tt4) for i in x]
+    numpy.insert(y2,0,0)
+    if (nb==1):
+        return x,y1
+    return x,y2
+
 def get_data():
     if (mode=='Ts'):
         return graph_ts()
     elif (mode=='n'):
         return graph_n()
+    elif (mode=='P_s'):
+        return graph_s(1)
+    elif (mode=='C_s'):
+        return graph_s(2)
+    
 
 #hs=cp*(T-T_ref)
 #Ds = cp ln(T/T_ref) - R ln(P/P_ref)
