@@ -22,7 +22,7 @@ M_H2=2*0.001
 M_O2=32*0.001
 M_N2=28.0*0.001
 M_air=0.21*M_O2+0.79*M_N2
-M_H20=M_O2/2.0+M_H2
+M_H2O=M_O2/2.0+M_H2
 Zst=2.38
 
 #flux echangeur de chaleur
@@ -86,15 +86,15 @@ def cp_H2(T) :
         return(cp_H2(999))
     return(Cp_H2)
 
-def cp_H20 (T) :
+def cp_H2O (T) :
     if T<1000.0 :
-        a_H20=[3.03399249E+00,2.17691804E-03,-1.64072518E-07,-9.70419870E-11,1.68200992E-14,-3.00042971E+04,4.96677010E+00]
-        Cp_H20 = R*(a_H20[0] + a_H20[1]*T + a_H20[2]*(T**2.0) + a_H20[3]*(T**3.0) + a_H20[4]*(T**4.0))
+        a_H2O=[3.03399249E+00,2.17691804E-03,-1.64072518E-07,-9.70419870E-11,1.68200992E-14,-3.00042971E+04,4.96677010E+00]
+        Cp_H2O = R*(a_H2O[0] + a_H2O[1]*T + a_H2O[2]*(T**2.0) + a_H2O[3]*(T**3.0) + a_H2O[4]*(T**4.0))
     else :
 ##      a_H2=[4.19864056E+00,-2.03643410E-03,6.52040211E-06,-5.48797062E-09,1.77197817E-12,-3.02937267E+04,-8.49032208E-01]
 ##      Cp_H2 = R*(a_H2[0] + a_H2[1]*T + a_H2[2]*(T**2.0) + a_H2[3]*(T**3.0) + a_H2[4]*(T**4.0))
-        return(cp_H20(999))
-    return(Cp_H20)
+        return(cp_H2O(999))
+    return(Cp_H2O)
 
 def cp_N2(T) :
     if T<1000.0 :
@@ -251,16 +251,10 @@ def T_H2_i (D_H2) :
     return(m)
 
 def richesse_i (M0,z,T_H2) :
-    a=0.0
-    b=1.0
-    meilleur_ecart=1000000000000.0
-    precision=0.001
-    for k in range (int(b/precision)) :
-        richesse_k=precision*k+precision
-        ecart=(richesse_k*cp_H2(T_H2)*T_H2+Zst*cp_air(T3(M0,z))*T3(M0,z))-(richesse_k*cp_H20(Tb)*Tb+0.79*Zst*cp_N2(Tb)*Tb+(0.5-richesse_k/2.0)*cp_O2(Tb)*Tb)
-        if abs(ecart)<meilleur_ecart :
-            meilleur_ecart=abs(ecart)
-            res=richesse_k
+    res=0.79*Zst*cp_N2(Tb)*Tb-0.5*cp_O2(Tb)*Tb-Zst*cp_air(T3(M0,z))*T3(M0,z)
+    res=res/(cp_H2(T_H2)*T_H2-cp_H2O(Tb)*Tb-cp_O2(Tb)*Tb)
+    res=abs(res)
+    print(res)
     return(res)
 
 def D_H2_i (M0,z,T_H2) :
@@ -307,12 +301,12 @@ def Tt4(M0,z):
 
 def T5(M0,z,richesse) :
     
-    flux_sortie=D_air(M0,z)*(richesse*cp_H20(Tb)*Tb/M_H20+0.79*Zst*cp_N2(Tb)/M_N2+(0.5-richesse/2.0)*cp_O2(Tb)*Tb/M_O2)+flux_1_5-flux_3_4
+    flux_sortie=D_air(M0,z)*(richesse*cp_H2O(Tb)*Tb/M_H2O+0.79*Zst*cp_N2(Tb)/M_N2+(0.5-richesse/2.0)*cp_O2(Tb)*Tb/M_O2)+flux_1_5-flux_3_4
     a=30.0
     b=3500.0
     while abs(b-a)>0.01 : 
         m=(a+b)/2.0
-        if D_air(M0,z)*(richesse*cp_H20(m)*m/M_H20+0.79*Zst*cp_N2(m)/M_N2+(0.5-richesse/2.0)*cp_O2(m)/M_O2*m)>flux_sortie :
+        if D_air(M0,z)*(richesse*cp_H2O(m)*m/M_H2O+0.79*Zst*cp_N2(m)/M_N2+(0.5-richesse/2.0)*cp_O2(m)/M_O2*m)>flux_sortie :
             b=m
         else :
             a=m
@@ -368,7 +362,7 @@ def rendement_global(M0,z) :
 dt=1.0
 T=600.0
 angle_gamma=5.0/360.0*2.0*np.pi
-angle_alpha=5.0/360.0*2.0*np.pi
+angle_alpha=10.0/360.0*2.0*np.pi
 f=10.0
 Cz=2.0*np.pi*angle_alpha
 Cx=Cz/f
@@ -398,12 +392,12 @@ def f_x_z_liste():
         M.append(V0/((gamma*R/Masse_mol*T0(z[i+1]))**0.5))
         D_H2.append(D_H2_f(M[i+1],z[i+1]))
         Fsp0=Fsp(M[i+1],z[i+1])
-        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.cos(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-x[i]+2*x[i+1])
-        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.sin(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-z[i]+2*z[i+1])  
+        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.cos(angle_alpha)*(Dn)/m_engin)-x[i]+2*x[i+1])
+        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.sin(angle_alpha)*(Dn)/m_engin)-z[i]+2*z[i+1])  
         if M[i+2]>7.5 :
             M[i+2]=7.5
-            x[i+2]=(dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.cos(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-x[i]+2*x[i+1]
-            z[i+2]=(dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.sin(angle_alpha)*(D_H2[i+1]+D_air(M[i+1],z[i+1]))/m_engin)-z[i]+2*z[i+1]  
+            x[i+2]=(dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.cos(angle_alpha)*(Dn)/m_engin)-x[i]+2*x[i+1]
+            z[i+2]=(dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.sin(angle_alpha)*(Dn)/m_engin)-z[i]+2*z[i+1]  
         if z[i+2]>40000.0 :
             z[i+2]=40000.0
             V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+2]-z[i+1])/dt)**2.0))**0.5
@@ -481,20 +475,20 @@ def f_x_z_liste():
     
 
 ##D_H2_liste=optimization_D_H2_liste ()
-
-##resultat=f_x_z_liste()
-##x_liste=resultat[0]
-##z_liste=resultat[1]
-##M0_liste=resultat[2]
-##D_H2_liste=resultat[3]
-##t_liste=resultat[4]
-####print(D_H2_liste)
-##plt.subplot(221)
-##plt.plot(t_liste,x_liste)
-##plt.subplot(222)
-##plt.plot(t_liste,z_liste)
-##plt.subplot(223)
-##plt.plot(t_liste,M0_liste)
-##plt.subplot(224)
-##plt.plot(t_liste,D_H2_liste)
-##plt.show()
+##
+resultat=f_x_z_liste()
+x_liste=resultat[0]
+z_liste=resultat[1]
+M0_liste=resultat[2]
+D_H2_liste=resultat[3]
+t_liste=resultat[4]
+##print(D_H2_liste)
+plt.subplot(221)
+plt.plot(t_liste,x_liste)
+plt.subplot(222)
+plt.plot(t_liste,z_liste)
+plt.subplot(223)
+plt.plot(t_liste,M0_liste)
+plt.subplot(224)
+plt.plot(t_liste,D_H2_liste)
+plt.show()
