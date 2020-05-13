@@ -251,11 +251,12 @@ def T_H2_i (D_H2) :
     return(m)
 
 def richesse_i (M0,z,T_H2) :
-    res=0.79*Zst*cp_N2(Tb)*Tb-0.5*cp_O2(Tb)*Tb-Zst*cp_air(T3(M0,z))*T3(M0,z)
-    res=res/(cp_H2(T_H2)*T_H2-cp_H2O(Tb)*Tb-cp_O2(Tb)*Tb)
-    res=abs(res)
-    print(res)
-    return(res)
+    res=0.79*Zst*cp_N2(Tb)*Tb+0.5*cp_O2(Tb)*Tb-Zst*cp_air(T3(M0,z))*T3(M0,z)
+    res=res/(cp_H2(T_H2)*T_H2-cp_H2O(Tb)*Tb+cp_O2(Tb)*Tb)
+    if res<0.01 :
+        return(0.01)
+    else :
+        return(res)
 
 def D_H2_i (M0,z,T_H2) :
     return(richesse_i(M0,z,T_H2)*D_air(M0,z)/34.3196)
