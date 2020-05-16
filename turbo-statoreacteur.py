@@ -132,10 +132,7 @@ def Tt0 (M0,z) :
     return(T0(z)*(1.0+(gamma-1.0)/2.0*M0*M0))
 
 def P0 (z) :
-    P0=Patm*np.exp(-7.0*g*z/(2.0*cp_air(T0(z))*T0(z)))
-##    if P0 <0.01 :
-##        return (0.01)
-##    else :
+    P0=Patm*((1.0-0.0065*z/T0(0))**5.255)
     return(P0)
 
 def Pt0 (M0,z) :
@@ -150,8 +147,6 @@ def Pt1 (M0,z) :
         Pt1=Pt0(M0,z)*0.95
     else :
         Pt1=Pt0(M0,z)*(0.95-0.075*((M0-1)**1.35))
-    if Pt1<0.01 :
-        Pt1=0.001
     return (Pt1)
 
 def Tt1 (M0,z) :
@@ -161,13 +156,12 @@ def Tt1 (M0,z) :
 def T1(M0,z):
     return (Tt1(M0,z)/(1.0+(gamma-1.0)/2.0*(M0**2.0)))
 
-def D_air (M0,z) :
-    return (Dn*CFR_0(M0,z)/100.0*delta2 (M0,z)/(theta2(M0,z)**(0.5)))
 
-def T2 (M0,z) :
+
+def T2 (M0,z,flux_1_5) :
     flux_sortie=Dn/M_air*cp_air(T1(M0,z))*float(T1(M0,z))-float(flux_1_5)
     
-    a=200.0
+    a=3.0
     b=3500.0
     while abs(b-a)>0.01 :
         m=(a+b)/2.0
@@ -178,12 +172,12 @@ def T2 (M0,z) :
             a=m
     return((a+b)/2.0)
 
-def Tt2(M0,z) :
-    return (T2(M0,z)*(1.0+(gamma-1.0)/2.0*(M0**2.0)))
+def Tt2(M0,z,flux_1_5) :
+    return (T2(M0,z,flux_1_5)*(1.0+(gamma-1.0)/2.0*(M0**2.0)))
 
 
-def Pt2 (M0,z) :
-    return (Pt1(M0,z)*((Tt2(M0,z)/Tt1(M0,z))**(gamma/(gamma-1.0))))
+def Pt2 (M0,z,flux_1_5) :
+    return (Pt1(M0,z)*((Tt2(M0,z,flux_1_5)/Tt1(M0,z))**(gamma/(gamma-1.0))))
 
 
 def CRS_to_CFR (CRS_0) :
@@ -208,38 +202,41 @@ def CFR_to_RPR (CFR_0) :
         RPR_0=RPR[k]*t+RPR[k-1]*(1-t)
         return (RPR_0)
 
-def theta2(M0,z):
-    return(Tt2(M0,z)/Tn)
+def theta2(M0,z,flux_1_5):
+    return(Tt2(M0,z,flux_1_5)/Tn)
 
-def delta2 (M0,z) :
-    return (Pt2(M0,z)/Patm)
+def delta2 (M0,z,flux_1_5) :
+    return (Pt2(M0,z,flux_1_5)/Patm)
 
-def CRS_0 (M0,z) :
-    return(100.0/((theta2(M0,z))**0.5))
+def CRS_0 (M0,z,flux_1_5) :
+    return(100.0/((theta2(M0,z,flux_1_5))**0.5))
 
-def RPR_0 (M0,z) :
-    RPR_0=CFR_to_RPR(CRS_to_CFR(CRS_0(M0,z)))
+def RPR_0 (M0,z,flux_1_5) :
+    RPR_0=CFR_to_RPR(CRS_to_CFR(CRS_0(M0,z,flux_1_5)))
     return(RPR_0)
 
-def CFR_0(M0,z):
-    CFR_0=CRS_to_CFR (CRS_0(M0,z))
+def CFR_0(M0,z,flux_1_5):
+    CFR_0=CRS_to_CFR (CRS_0(M0,z,flux_1_5))
     return (CFR_0)
 
-def PI (M0,z) :
-    return (PIn*RPR_0(M0,z))
+def D_air (M0,z) :
+    return (Dn*CFR_0(M0,z,flux_1_5)/100.0*delta2 (M0,z,flux_1_5)/(theta2(M0,z,flux_1_5)**(0.5)))
 
-def Pt3(M0,z) :
-    return (Pt2(M0,z)*PI(M0,z))
+def PI (M0,z,flux_1_5) :
+    return (PIn*RPR_0(M0,z,flux_1_5))
 
-def Tt3(M0,z) :
-    return (Tt2(M0,z)*(PI(M0,z)**((gamma-1.0)/gamma)))
+def Pt3(M0,z,flux_1_5) :
+    return (Pt2(M0,z,flux_1_5)*PI(M0,z,flux_1_5))
 
-def T3(M0,z):
-    return (Tt3(M0,z))
+def Tt3(M0,z,flux_1_5) :
+    return (Tt2(M0,z,flux_1_5)*(PI(M0,z,flux_1_5)**((gamma-1.0)/gamma)))
+
+def T3(M0,z,flux_1_5):
+    return (Tt3(M0,z,flux_1_5))
 
 
 
-def T_H2_i (D_H2) :
+def T_H2_i (D_H2,flux_3_4) :
     a=20.0
     b=3500.0
     while abs(b-a)>0.01 :
@@ -250,37 +247,37 @@ def T_H2_i (D_H2) :
             a=m
     return(m)
 
-def richesse_i (M0,z,T_H2) :
-    res=0.79*Zst*cp_N2(Tb)*Tb+0.5*cp_O2(Tb)*Tb-Zst*cp_air(T3(M0,z))*T3(M0,z)
+def richesse_i (M0,z,T_H2,flux_1_5) :
+    res=0.79*Zst*cp_N2(Tb)*Tb+0.5*cp_O2(Tb)*Tb-Zst*cp_air(T3(M0,z,flux_1_5))*T3(M0,z,flux_1_5)
     res=res/(cp_H2(T_H2)*T_H2-cp_H2O(Tb)*Tb+cp_O2(Tb)*Tb)
     if res<0.01 :
         return(0.01)
     else :
         return(res)
 
-def D_H2_i (M0,z,T_H2) :
-    return(richesse_i(M0,z,T_H2)*D_air(M0,z)/34.3196)
+def D_H2_i (M0,z,T_H2,flux_1_5) :
+    return(richesse_i(M0,z,T_H2,flux_1_5)*D_air(M0,z)/34.3196)
 
-def D_H2_f (M0,z) :
+def D_H2_f (M0,z,flux_3_4,flux_1_5) :
     nb_iterations_max=100
     nb_iterations=1
     D_H2_f1=2.0
-    T_H2_f=T_H2_i (D_H2_f1)
-    D_H2_f2=D_H2_i (M0,z,T_H2_f)
+    T_H2_f=T_H2_i (D_H2_f1,flux_3_4)
+    D_H2_f2=D_H2_i (M0,z,T_H2_f,flux_1_5)
     while abs (D_H2_f1-D_H2_f2)>0.01 and nb_iterations<nb_iterations_max :
-        T_H2_f=T_H2_i (D_H2_f2)
-        m=D_H2_i (M0,z,T_H2_f)
+        T_H2_f=T_H2_i (D_H2_f2,flux_3_4)
+        m=D_H2_i (M0,z,T_H2_f,flux_1_5)
         D_H2_f1=D_H2_f2
         D_H2_f2=m
         nb_iterations+=1
         
     return (D_H2_f2)
 
-def T_H2_f(M0,z) :
-    return(T_H2_i (D_H2_f (M0,z)))
+def T_H2_f(M0,z,flux_3_4) :
+    return(T_H2_i (D_H2_f (M0,z,flux_3_4,flux_1_5),flux_3_4))
 
-def richesse_f (M0,z) :
-    return(richesse_i (M0,z,T_H2_f(M0,z)))
+def richesse_f (M0,z,flux_3_4,flux_1_5) :
+    return(richesse_i (M0,z,T_H2_f(M0,z,flux_3_4),flux_1_5))
     
         
 
@@ -293,14 +290,14 @@ def richesse_f (M0,z) :
 ##def flux_massique_3_4(M0,D_H2,z): 
 ##    return ((((D_H2*cp_H2(Tb)+D_air(M0,z)*cp_air(Tb))*Tb)-(D_H2*cp_H2(T_H2)*T_H2)-(D_air(M0,z)*cp_air(T3(M0,z))*T3(M0,z)))/(D_H2+D_air(M0,z)))
 
-def Pt4(M0,z) :
-    return (Pt3(M0,z)*((Tb/T3(M0,z))**(gamma/(gamma-1.0))))
+def Pt4(M0,z,flux_1_5) :
+    return (Pt3(M0,z,flux_1_5)*((Tb/T3(M0,z,flux_1_5))**(gamma/(gamma-1.0))))
 
-def Tt4(M0,z):
-    return (Tt3(M0,z)*((Pt4(M0,z)/Pt3(M0,z))**((gamma-1.0)/gamma)))
+def Tt4(M0,z,flux_1_5):
+    return (Tt3(M0,z,flux_1_5)*((Pt4(M0,z,flux_1_5)/Pt3(M0,z,flux_1_5))**((gamma-1.0)/gamma)))
 
 
-def T5(M0,z,richesse) :
+def T5(M0,z,richesse,flux_1_5,flux_3_4) :
     
     flux_sortie=D_air(M0,z)*(richesse*cp_H2O(Tb)*Tb/M_H2O+0.79*Zst*cp_N2(Tb)/M_N2+(0.5-richesse/2.0)*cp_O2(Tb)*Tb/M_O2)+flux_1_5-flux_3_4
     a=30.0
@@ -313,12 +310,12 @@ def T5(M0,z,richesse) :
             a=m
     return((a+b)/2.0)
 
-def Pt5(M0,z,richesse) :    
-    return (Pt4(M0,z)*((T5(M0,z,richesse)/Tb)**(gamma/(gamma-1.0))))
+def Pt5(M0,z,richesse,flux_1_5,flux_3_4) :    
+    return (Pt4(M0,z,flux_1_5)*((T5(M0,z,richesse,flux_1_5,flux_3_4)/Tb)**(gamma/(gamma-1.0))))
 
-def M9 (M0,z,richesse) :
+def M9 (M0,z,richesse,flux_1_5,flux_3_4) :
     
-    res=Pt5(M0,z,richesse)/P0(z)
+    res=Pt5(M0,z,richesse,flux_1_5,flux_3_4)/P0(z)
     res=res**((gamma-1.0)/gamma)
     
     res=2.0*(res-1.0)/(gamma-1.0)
@@ -332,9 +329,9 @@ def a0(z) :
     
     return((gamma*r*T0(z))**0.5)
 
-def Fsp (M0,z) :
-    richesse=richesse_f (M0,z)
-    res=M9(M0,z,richesse)*(((Tt4(M0,z)/T0(z))/(Tt3(M0,z)/Tt2(M0,z))/(Tt0(M0,z)/T0(z)))**0.5)
+def Fsp (M0,z,flux_1_5,flux_3_4) :
+    richesse=richesse_f (M0,z,flux_3_4)
+    res=M9(M0,z,richesse,flux_1_5,flux_3_4)*(((Tt4(M0,z,flux_1_5)/T0(z))/(Tt3(M0,z,flux_1_5)/Tt2(M0,z,flux_1_5))/(Tt0(M0,z)/T0(z)))**0.5)
     res=a0(z)*(res-M0)
     return(res)
 
@@ -343,27 +340,27 @@ def f_D(M0,z) :
 ##    res=res*T0(z)
 ##    res=res*gamma*r/(gamma-1)
 ##    res=res/PCI
-    res=D_H2_f (M0,z)/D_air(M0,z)
+    res=D_H2_f (M0,z,flux_1_5)/D_air(M0,z)
     return(res)
     
-def v9 (M0,z) :
-    return((Fsp(M0,z)/a0(z)+M0)*a0(z))
+def v9 (M0,z,flux_1_5,flux_3_4) :
+    return((Fsp(M0,z,flux_1_5,flux_3_4)/a0(z)+M0)*a0(z))
 
-def rendement_p(M0,z):
-    return((2*M0)/(v9(M0,z)/a0(z)+M0))
+def rendement_p(M0,z,flux_1_5,flux_3_4):
+    return((2*M0)/(v9(M0,z,flux_1_5,flux_3_4)/a0(z)+M0))
 
 def rendement_th(M0,z) :
     return (1.0-(1.0/(Tt3(M0,z)/Tt2(M0,z)*Tt0(M0,z)/T0(z))))
 
 def rendement_global(M0,z) :
-    return (rendement_p(M0,z)*rendement_th(M0,z))
+    return (rendement_p(M0,z,flux_1_5,flux_3_4)*rendement_th(M0,z))
 
 
 
 dt=1.0
 T=600.0
 angle_gamma=5.0/360.0*2.0*np.pi
-angle_alpha=10.0/360.0*2.0*np.pi
+angle_alpha=5.0/360.0*2.0*np.pi
 f=10.0
 Cz=2.0*np.pi*angle_alpha
 Cx=Cz/f
@@ -380,29 +377,33 @@ def masse_vol(z) :
 ##    return (res)
 
 
-def f_x_z_liste():
+def f_x_z_liste(flux_1_5,flux_3_4):
     x=[0.0,0.0]
     z=[0.0,0.0]
     M=[0.0,0.0]
     t=[0.0,0.0]
     D_H2=[0.0,0.0]
     for i in  range (int(T/dt)):
-        print(i)
+       
         t.append(float(i+1)*dt)
         V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+1]-z[i])/dt)**2.0))**0.5
+        
         M.append(V0/((gamma*R/Masse_mol*T0(z[i+1]))**0.5))
-        D_H2.append(D_H2_f(M[i+1],z[i+1]))
-        Fsp0=Fsp(M[i+1],z[i+1])
-        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.cos(angle_alpha)*(Dn)/m_engin)-x[i]+2*x[i+1])
-        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp0*np.sin(angle_alpha)*(Dn)/m_engin)-z[i]+2*z[i+1])  
+        D_H2.append(D_H2_f(M[i+1],z[i+1],flux_3_4))
+        Fsp0=Fsp(M[i+1],z[i+1],flux_1_5,flux_3_4)
+        x.append((dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2.0)+Fsp0*np.cos(angle_alpha)*(D_air(M[i+1],z[i+1])+D_H2_f(M[i+1],z[i+1],flux_3_4))/m_engin)-x[i]+2*x[i+1])
+        z.append((dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2.0)+Fsp0*np.sin(angle_alpha)*(D_air(M[i+1],z[i+1])+D_H2_f(M[i+1],z[i+1],flux_3_4))/m_engin)-z[i]+2*z[i+1])
+        print(richesse_f(M[i+1],z[i+1],flux_3_4))
         if M[i+2]>7.5 :
             M[i+2]=7.5
-            x[i+2]=(dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.cos(angle_alpha)*(Dn)/m_engin)-x[i]+2*x[i+1]
-            z[i+2]=(dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2)+Fsp(M[i+1],z[i+1])*np.sin(angle_alpha)*(Dn)/m_engin)-z[i]+2*z[i+1]  
+            x[i+2]=(dt**2.0)*(-1.0*g*np.sin(angle_alpha)-0.5*Cx*masse_vol(z[i+1])*g/Rmax*(V0**2.0)+Fsp(M[i+1],z[i+1],flux_1_5,flux_3_4)*np.cos(angle_alpha)*(D_air(M[i+1],z[i+1])+D_H2_f(M[i+1],z[i+1],flux_3_4))/m_engin)-x[i]+2*x[i+1]
+            z[i+2]=(dt**2.0)*(-1.0*g*np.cos(angle_alpha)+0.5*Cz*masse_vol(z[i+1])*g/Rmax*(V0**2.0)+Fsp(M[i+1],z[i+1],flux_1_5,flux_3_4)*np.sin(angle_alpha)*(D_air(M[i+1],z[i+1])+D_H2_f(M[i+1],z[i+1],flux_3_4))/m_engin)-z[i]+2*z[i+1]  
         if z[i+2]>40000.0 :
             z[i+2]=40000.0
             V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+2]-z[i+1])/dt)**2.0))**0.5
             M[i+2]=V0/((gamma*R/Masse_mol*T0(z[i+1]))**0.5)
+            if M[i+2]>7.5 :
+                M[i+2]=7.5
         elif z[i+2]<0.0 :
             z[i+2]=0.0
             V0=((((x[i+1]-x[i])/dt)**2.0)+(((z[i+2]-z[i+1])/dt)**2.0))**0.5
@@ -473,23 +474,64 @@ def f_x_z_liste():
 ##        
 
 
-    
-
-##D_H2_liste=optimization_D_H2_liste ()
+##delta_variation_flux=10000
 ##
-resultat=f_x_z_liste()
-x_liste=resultat[0]
-z_liste=resultat[1]
-M0_liste=resultat[2]
-D_H2_liste=resultat[3]
-t_liste=resultat[4]
-##print(D_H2_liste)
-plt.subplot(221)
-plt.plot(t_liste,x_liste)
-plt.subplot(222)
-plt.plot(t_liste,z_liste)
-plt.subplot(223)
-plt.plot(t_liste,M0_liste)
-plt.subplot(224)
-plt.plot(t_liste,D_H2_liste)
-plt.show()
+##def variation_flux (flux_1_5,flux_3_4,nb_variations):
+##    res_1_5=flux_1_5+(random.random()-0.5)*2.0*(nb_variations+1)*delta_variation_flux
+##    res_3_4=flux_3_4+(random.random()-0.5)*2.0*(nb_variations+1)*delta_variation_flux
+##    res=[res_1_5,res_3_4]
+##    return(res)
+##
+##def optimisation_flux () :
+##    flux_1_5=50000.0
+##    flux_3_4=50000.0
+##    nombre_de_variations_max=50
+##    nombre_de_changements_de_liste_max=200
+##    nombre_de_variations=0
+##    nombre_de_changements_de_liste=0
+##    z_max1=max(f_x_z_liste(flux_1_5,flux_3_4)[1])
+##    while (nombre_de_variations_max>nombre_de_variations) and (nombre_de_changements_de_liste_max>nombre_de_changements_de_liste) :
+##        res=variation_flux (flux_1_5,flux_3_4,nombre_de_variations)
+##        res_1_5=res[0]
+##        res_3_4=res[1]
+##        z_max2=max(f_x_z_liste(res_1_5,res_3_4)[1])
+##        if z_max2>z_max1 :
+##            flux_1_5=res_1_5
+##            flux_3_4=res_3_4
+##            z_max1=z_max2
+##            nombre_de_changements_de_liste+=1
+##            nombre_de_variations=0
+##        else :
+##            nombre_de_variations+=1
+##        print("nombre_de_variations :",nombre_de_variations)
+##        print("nombre_de_changements_de_liste :",nombre_de_changements_de_liste)
+##        print(z_max1)
+##        print(flux_1_5)
+##        print(flux_3_4)
+##    res=[flux_1_5,flux_3_4]
+##    return(res)
+##            
+##    
+##
+####D_H2_liste=optimization_D_H2_liste ()
+##
+##flux_1_5_f=optimisation_flux ()[0]
+##flux_3_4_f=optimisation_flux ()[1]
+##flux_1_5_f=0.0
+##flux_3_4_f=0.0
+##resultat=f_x_z_liste(flux_1_5_f,flux_3_4_f)
+##x_liste=resultat[0]
+##z_liste=resultat[1]
+##M0_liste=resultat[2]
+##D_H2_liste=resultat[3]
+##t_liste=resultat[4]
+####print(D_H2_liste)
+##plt.subplot(221)
+##plt.plot(t_liste,x_liste)
+##plt.subplot(222)
+##plt.plot(t_liste,z_liste)
+##plt.subplot(223)
+##plt.plot(t_liste,M0_liste)
+##plt.subplot(224)
+##plt.plot(t_liste,D_H2_liste)
+##plt.show()
